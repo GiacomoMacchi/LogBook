@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logbook Sub</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    :root {
+      --primary: #0077b6;
+      --bg: #f4f7f6;
+      --card-bg: #ffffff;
+      --text: #1d3557;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1, h2 { text-align: center; color: var(--primary); }
+    .card {
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-weight: bold; margin-bottom: 4px; font-size: 0.9em; }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 1em;
+    }
+    button {
+      width: 100%;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:active { opacity: 0.9; }
+    .dive-item {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+    .dive-item:last-child { border-bottom: none; }
+    .dive-title { font-weight: bold; color: var(--primary); }
+    .dive-details { font-size: 0.85em; color: #555; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <h1>🤿 Logbook Sub</h1>
+
+  <!-- Form Nuova Immersione -->
+  <div class="card">
+    <h2>Nuova Immersione</h2>
+    <form id="diveForm">
+      <div class="form-group">
+        <label for="location">Luogo / Punto di immersione</label>
+        <input type="text" id="location" placeholder="Es. Secca della Gaiana" required>
+      </div>
+      <div class="form-group">
+        <label for="date">Data</label>
+        <input type="date" id="date" required>
+      </div>
+      <div class="form-group">
+        <label for="depth">Profondità Massima (metri)</label>
+        <input type="number" id="depth" step="0.1" placeholder="Es. 24.5" required>
+      </div>
+      <div class="form-group">
+        <label for="time">Tempo di Fondo (minuti)</label>
+        <input type="number" id="time" placeholder="Es. 45" required>
+      </div>
+      <div class="form-group">
+        <label for="notes">Note / Avvistamenti</label>
+        <textarea id="notes" rows="3" placeholder="Murena, cernia, visibilità buona..."></textarea>
+      </div>
+      <button type="submit">Salva Immersione</button>
+    </form>
+  </div>
+
+  <!-- Lista Immersioni Salvate -->
+  <div class="card">
+    <h2>Le Tue Immersioni</h2>
+    <div id="diveList">Nessuna immersione salvata.</div>
+  </div>
+
+  <script>
+    // Registrazione Service Worker per PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    const diveForm = document.getElementById('diveForm');
+    const diveList = document.getElementById('diveList');
+
+    // Imposta data odierna di default nel form
+    document.getElementById('date').valueAsDate = new Date();
+
+    // Carica le immersioni salvate
+    function loadDives() {
+      const dives = JSON.parse(localStorage.getItem('my_dives') || '[]');
+      if (dives.length === 0) {
+        diveList.innerHTML = '<p style="text-align:center; color:#777;">Nessuna immersione salvata.</p>';
+        return;
+      }
+
+      diveList.innerHTML = dives.map((d, index) => `
+        <div class="dive-item">
+          <div class="dive-title">#${dives.length - index} ${d.location}</div>
+          <div class="dive-details">
+            📅 ${d.date} | 📏 ${d.depth}m | ⏱️ ${d.time} min
+          </div>
+          ${d.notes ? `<div class="dive-details">📝 ${d.notes}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Salva nuova immersione
+    diveForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const newDive = {
+        location: document.getElementById('location').value,
+        date: document.getElementById('date').value,
+        depth: document.getElementById('depth').value,
+        time: document.getElementById('time').value,
+        notes: document.getElementById('notes').value
+      };
+
+      const dives = JSON.parse(localStorage.getItem('my_dives') || '[]');
+      dives.unshift(newDive); // Aggiunge in cima alla lista
+      localStorage.setItem('my_dives', JSON.stringify(dives));
+
+      diveForm.reset();
+      document.getElementById('date').valueAsDate = new Date();
+      loadDives();
+    });
+
+    // Inizializza
+    loadDives();
+  </script>
+</body>
+</html>
