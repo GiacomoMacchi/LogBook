@@ -1,841 +1,867 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Logbook Sub Pro</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  
-  <!-- Leaflet CSS (Mappe) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Chart.js (Grafici) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Logbook Sub</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0077b6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Logbook Sub">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" href="icons/icon-192.png">
 
-  <style>
-    :root {
-      --primary: #0077b6;
-      --primary-dark: #023e8a;
-      --accent: #00b4d8;
-      --bg: #f8f9fa;
-      --card-bg: #ffffff;
-      --text: #1d3557;
-      --text-light: #6c757d;
-      --border: #e9ecef;
-      --danger: #e63946;
-      --success: #2a9d8f;
-    }
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 0 0 75px 0; /* spazio per tab bar */
-      -webkit-tap-highlight-color: transparent;
-    }
+<style>
+  :root {
+    --primary: #0077b6;
+    --primary-dark: #023e73;
+    --bg: #f4f7f6;
+    --card-bg: #ffffff;
+    --text: #1d3557;
+    --muted: #6c7a89;
+    --border: #e3e8ea;
+    --danger: #d64545;
+    --tabbar-h: 62px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 12px 12px calc(var(--tabbar-h) + 24px) 12px;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  h1 { text-align: center; color: var(--primary); font-size: 1.4em; margin: 8px 0 16px; }
+  h2 { color: var(--primary); font-size: 1.1em; margin: 0 0 12px; }
+  .card {
+    background: var(--card-bg);
+    padding: 16px;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+    margin-bottom: 16px;
+  }
+  .view { display: none; }
+  .view.active { display: block; }
 
-    /* Header */
-    header {
-      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-      color: white;
-      padding: 16px;
-      text-align: center;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-    }
-    header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; }
+  .form-group { margin-bottom: 12px; }
+  label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 0.85em; color: var(--text); }
+  .hint { font-size: 0.75em; color: var(--muted); margin-top: 3px; }
+  input, textarea, select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+  }
+  textarea { resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
-    /* Tab Content Containers */
-    .tab-content { display: none; padding: 16px; max-width: 600px; margin: 0 auto; }
-    .tab-content.active { display: block; }
+  fieldset {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 0 0 14px 0;
+    padding: 10px 12px 12px;
+  }
+  legend { padding: 0 6px; font-weight: 700; color: var(--primary); font-size: 0.92em; }
 
-    /* Cards */
-    .card {
-      background: var(--card-bg);
-      border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      border: 1px solid var(--border);
-    }
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-top: 0;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 7px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 0.82em;
+    cursor: pointer;
+    user-select: none;
+    background: #fff;
+  }
+  .chip.selected { background: var(--primary); color: #fff; }
 
-    /* Form Styles */
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .full-width { grid-column: span 2; }
-    .form-group { margin-bottom: 12px; }
-    label { display: block; font-weight: 600; font-size: 0.82rem; color: var(--text-light); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-    input, select, textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      background: #fdfdfd;
-      color: var(--text);
-    }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  button, .btn {
+    background-color: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 1em;
+    font-weight: 700;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+  button:active, .btn:active { opacity: 0.85; }
+  .btn-secondary { background: #eef2f3; color: var(--text); }
+  .btn-danger { background: var(--danger); }
+  .btn-row { display: flex; gap: 8px; margin-top: 6px; }
+  .btn-row > * { flex: 1; }
+  .btn-small { padding: 8px; font-size: 0.85em; width: auto; }
 
-    /* Buttons */
-    .btn {
-      width: 100%;
-      background: var(--primary);
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 10px;
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn:active { opacity: 0.85; }
-    .btn-secondary { background: var(--accent); }
-    .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
-    .btn-danger { background: var(--danger); }
-    .btn-sm { padding: 6px 10px; font-size: 0.8rem; width: auto; }
+  .dive-item { border-bottom: 1px solid #eee; padding: 12px 0; }
+  .dive-item:last-child { border-bottom: none; }
+  .dive-title { font-weight: 700; color: var(--primary); display: flex; justify-content: space-between; align-items: baseline; }
+  .dive-title span.num { color: var(--muted); font-weight: 500; font-size: 0.8em; }
+  .dive-details { font-size: 0.85em; color: #555; margin-top: 4px; line-height: 1.5; }
+  .tag {
+    display: inline-block;
+    background: #eef6fb;
+    color: var(--primary);
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-size: 0.72em;
+    margin: 2px 4px 0 0;
+  }
+  .dive-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .dive-actions button { width: auto; padding: 6px 12px; font-size: 0.8em; }
 
-    /* Dive Item List Card */
-    .dive-card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
-      border-left: 5px solid var(--primary);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-    }
-    .dive-header { display: flex; justify-content: space-between; font-weight: bold; font-size: 1.05rem; }
-    .dive-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-    .badge {
-      background: #e0f2fe;
-      color: #0369a1;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .badge-accent { background: #dcfce7; color: #15803d; }
-    .dive-details { font-size: 0.85rem; color: var(--text-light); margin-top: 4px; line-height: 1.4; }
+  .empty-msg { text-align: center; color: #888; padding: 20px 0; }
 
-    /* Maps */
-    #mapContainer, #formMapContainer {
-      height: 350px;
-      width: 100%;
-      border-radius: 12px;
-      margin-top: 8px;
-      border: 1px solid var(--border);
-    }
-    #formMapContainer { height: 200px; }
+  /* Tab bar */
+  .tabbar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: var(--tabbar-h);
+    background: #fff;
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 100;
+  }
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 0.68em;
+    font-weight: 600;
+    padding: 6px 0;
+    border-radius: 0;
+  }
+  .tab-btn .icon { font-size: 1.35em; }
+  .tab-btn.active { color: var(--primary); }
 
-    /* Stats Grid */
-    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
-    .stat-card {
-      background: white;
-      padding: 12px;
-      border-radius: 10px;
-      text-align: center;
-      border: 1px solid var(--border);
-    }
-    .stat-val { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
-    .stat-lbl { font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; }
+  #map { height: 340px; border-radius: 12px; margin-bottom: 12px; }
+  #pickerMap { height: 220px; border-radius: 10px; margin-top: 8px; display: none; }
 
-    /* Bottom Navigation Bar */
-    .tab-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background: white;
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 2000;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-    }
-    .tab-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      color: var(--text-light);
-      font-size: 0.7rem;
-      text-decoration: none;
-      cursor: pointer;
-      width: 25%;
-    }
-    .tab-item.active { color: var(--primary); font-weight: bold; }
-    .tab-icon { font-size: 1.3rem; margin-bottom: 2px; }
-  </style>
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-box { background: #eef6fb; border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-box .val { font-size: 1.4em; font-weight: 800; color: var(--primary); }
+  .stat-box .lbl { font-size: 0.72em; color: var(--muted); margin-top: 2px; }
+
+  canvas { max-width: 100%; }
+
+  .species-row { display: flex; justify-content: space-between; font-size: 0.88em; padding: 6px 0; border-bottom: 1px solid #f0f0f0; }
+  .species-row:last-child { border-bottom: none; }
+  .species-bar-bg { background: #eef2f3; border-radius: 6px; height: 8px; margin-top: 4px; overflow: hidden; }
+  .species-bar-fill { background: var(--primary); height: 100%; }
+
+  details > summary { cursor: pointer; font-weight: 700; color: var(--primary); padding: 6px 0; }
+</style>
 </head>
 <body>
 
-  <header>
-    <h1 id="headerTitle">🤿 Logbook Subacqueo</h1>
-  </header>
+<h1>🤿 Logbook Sub</h1>
 
-  <!-- TAB 1: LISTA IMMERSIONI -->
-  <div id="tab-list" class="tab-content active">
-    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-      <input type="text" id="searchInput" placeholder="🔍 Cerca sito, specie, buddy..." oninput="renderDives()">
-    </div>
-    <div id="divesContainer"></div>
-  </div>
-
-  <!-- TAB 2: NUOVA / MODIFICA IMMERSIONE -->
-  <div id="tab-form" class="tab-content">
+<!-- VIEW: NUOVA IMMERSIONE -->
+<div class="view active" id="view-new">
+  <div class="card">
+    <h2 id="formTitle">Nuova Immersione</h2>
     <form id="diveForm">
-      <input type="hidden" id="editIndex" value="-1">
+      <input type="hidden" id="diveId">
 
-      <div class="card">
-        <div class="card-title">📌 Dati Generali</div>
-        <div class="form-grid">
+      <fieldset>
+        <legend>Generale</legend>
+        <div class="form-group">
+          <label for="location">Luogo / Punto di immersione</label>
+          <input type="text" id="location" placeholder="Es. Secca della Gaiana" required>
+        </div>
+        <div class="row2">
           <div class="form-group">
-            <label>N. Immersione</label>
-            <input type="number" id="diveNum" required>
+            <label for="date">Data</label>
+            <input type="date" id="date" required>
           </div>
           <div class="form-group">
-            <label>Data e Ora</label>
-            <input type="datetime-local" id="dateTime" required>
-          </div>
-          <div class="form-group full-width">
-            <label>Luogo / Nazione</label>
-            <input type="text" id="location" placeholder="Es. Isola del Giglio, Italia" required>
-          </div>
-          <div class="form-group full-width">
-            <label>Punto di Immersione (Sito)</label>
-            <input type="text" id="site" placeholder="Es. Secca dei Pini" required>
+            <label for="entryTime">Ora immersione</label>
+            <input type="time" id="entryTime">
           </div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">⏱️ Profondità e Tempi</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Prof. Max (m)</label>
-            <input type="number" step="0.1" id="maxDepth" required oninput="calcSAC()">
-          </div>
-          <div class="form-group">
-            <label>Prof. Media (m)</label>
-            <input type="number" step="0.1" id="avgDepth" oninput="calcSAC()">
-          </div>
-          <div class="form-group">
-            <label>Tempo Fondo (min)</label>
-            <input type="number" id="diveTime" required oninput="calcSAC()">
-          </div>
-          <div class="form-group">
-            <label>Sosta Sicurezza</label>
-            <input type="text" id="safetyStop" placeholder="Es. 3min @ 5m" value="3min @ 5m">
+        <div class="form-group">
+          <label>Tipo di immersione</label>
+          <div class="chip-group" id="diveTypeChips">
+            <span class="chip" data-value="Ricreativa">Ricreativa</span>
+            <span class="chip" data-value="Relitto">Relitto</span>
+            <span class="chip" data-value="Notturna">Notturna</span>
+            <span class="chip" data-value="Grotta">Grotta</span>
+            <span class="chip" data-value="Drift">Drift</span>
+            <span class="chip" data-value="Profonda">Profonda</span>
+            <span class="chip" data-value="Corso">Corso/Training</span>
           </div>
         </div>
-      </div>
+        <div class="form-group">
+          <label>Posizione GPS (opzionale)</label>
+          <div class="row2">
+            <input type="number" id="lat" step="0.000001" placeholder="Latitudine">
+            <input type="number" id="lng" step="0.000001" placeholder="Longitudine">
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary btn-small" id="toggleMapPicker">📍 Scegli su mappa</button>
+            <button type="button" class="btn-secondary btn-small" id="useGPS">📡 Usa posizione attuale</button>
+          </div>
+          <div id="pickerMap"></div>
+        </div>
+      </fieldset>
 
-      <div class="card">
-        <div class="card-title">💨 Gas e Consumi</div>
-        <div class="form-grid">
+      <fieldset>
+        <legend>Profondità e tempo</legend>
+        <div class="row3">
           <div class="form-group">
-            <label>Miscela Gas</label>
-            <select id="gasType" onchange="toggleNitrox()">
+            <label for="depth">Prof. max (m)</label>
+            <input type="number" id="depth" step="0.1" required>
+          </div>
+          <div class="form-group">
+            <label for="avgDepth">Prof. media (m)</label>
+            <input type="number" id="avgDepth" step="0.1">
+          </div>
+          <div class="form-group">
+            <label for="time">Tempo fondo (min)</label>
+            <input type="number" id="time" required>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Miscela e consumo aria</legend>
+        <div class="row2">
+          <div class="form-group">
+            <label for="gasType">Miscela</label>
+            <select id="gasType">
               <option value="Aria">Aria</option>
-              <option value="Nitrox 32%">Nitrox 32%</option>
-              <option value="Nitrox 36%">Nitrox 36%</option>
-              <option value="Nitrox Altro">Nitrox Personalizzato</option>
-              <option value="Trimix">Trimix</option>
+              <option value="Nitrox">Nitrox</option>
             </select>
           </div>
-          <div class="form-group" id="o2Group" style="display:none;">
-            <label>% O2</label>
-            <input type="number" id="o2Perc" value="32">
-          </div>
           <div class="form-group">
-            <label>Vol. Bombola (L)</label>
-            <input type="number" id="tankVol" value="12" oninput="calcSAC()">
-          </div>
-          <div class="form-group">
-            <label>Press. Inizio (bar)</label>
-            <input type="number" id="pressStart" value="200" oninput="calcSAC()">
-          </div>
-          <div class="form-group">
-            <label>Press. Fine (bar)</label>
-            <input type="number" id="pressEnd" value="50" oninput="calcSAC()">
-          </div>
-          <div class="form-group full-width">
-            <label>Consumo Stimato SAC (L/min)</label>
-            <input type="text" id="sacVal" readonly style="background:#e9ecef; font-weight:bold;">
+            <label for="o2Percent">% O₂</label>
+            <input type="number" id="o2Percent" value="21" min="21" max="100">
           </div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🤿 Attrezzatura</div>
-        <div class="form-grid">
+        <div class="hint" id="modHint"></div>
+        <div class="row3">
           <div class="form-group">
-            <label>Muta</label>
-            <input type="text" id="wetsuit" placeholder="Es. Umida 5mm">
+            <label for="tankSize">Bombola (L)</label>
+            <input type="number" id="tankSize" step="0.5" placeholder="Es. 12">
           </div>
           <div class="form-group">
-            <label>Zavorra / Pesi (kg)</label>
-            <input type="number" step="0.5" id="weights">
+            <label for="pStart">Press. iniziale (bar)</label>
+            <input type="number" id="pStart" placeholder="Es. 200">
           </div>
-          <div class="form-group full-width">
-            <label>GAV / Altra zavorra</label>
-            <input type="text" id="gear" placeholder="Es. GAV Jacket, Monobombola">
+          <div class="form-group">
+            <label for="pEnd">Press. finale (bar)</label>
+            <input type="number" id="pEnd" placeholder="Es. 60">
           </div>
         </div>
-      </div>
+        <div class="hint" id="sacHint"></div>
+      </fieldset>
 
-      <div class="card">
-        <div class="card-title">🌊 Meteo e Condizioni</div>
-        <div class="form-grid">
+      <fieldset>
+        <legend>Attrezzatura</legend>
+        <div class="row2">
           <div class="form-group">
-            <label>Meteo / Mare</label>
+            <label for="suit">Muta</label>
+            <select id="suit">
+              <option value="">—</option>
+              <option>Muta umida 3mm</option>
+              <option>Muta umida 5mm</option>
+              <option>Muta umida 7mm</option>
+              <option>Muta stagna</option>
+              <option>Nessuna / costume</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="weights">Piombi (kg)</label>
+            <input type="number" id="weights" step="0.5">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="gear">Altra attrezzatura (GAV, computer, erogatore...)</label>
+          <input type="text" id="gear" placeholder="Es. GAV Scubapro, computer Suunto">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Compagni e struttura</legend>
+        <div class="row2">
+          <div class="form-group">
+            <label for="buddy">Buddy / compagno</label>
+            <input type="text" id="buddy">
+          </div>
+          <div class="form-group">
+            <label for="center">Diving center / barca</label>
+            <input type="text" id="center">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Condizioni</legend>
+        <div class="row2">
+          <div class="form-group">
+            <label for="weather">Meteo</label>
             <select id="weather">
-              <option value="Calmo / Sole">Sole / Mare Calmo</option>
-              <option value="Poco mosso">Poco Mosso</option>
-              <option value="Mosso / Corrente">Mosso / Corrente</option>
-              <option value="Pioggia">Pioggia</option>
+              <option value="">—</option>
+              <option>Sereno</option>
+              <option>Parzialmente nuvoloso</option>
+              <option>Nuvoloso</option>
+              <option>Pioggia</option>
+              <option>Vento forte</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Visibilità (m)</label>
-            <input type="number" id="visib" placeholder="Es. 15">
-          </div>
-          <div class="form-group">
-            <label>Temp. Acqua Sup. (°C)</label>
-            <input type="number" step="0.1" id="tempSurf">
-          </div>
-          <div class="form-group">
-            <label>Temp. Acqua Fondo (°C)</label>
-            <input type="number" step="0.1" id="tempBottom">
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">🤝 Info & Specie Avvistate</div>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label>Tipo Immersione</label>
-            <input type="text" id="diveType" placeholder="Es. Parete, Relitto, Notturna, Grotta">
-          </div>
-          <div class="form-group">
-            <label>Buddy / Compagno</label>
-            <input type="text" id="buddy" placeholder="Nome compagno">
-          </div>
-          <div class="form-group">
-            <label>Diving Center / Guida</label>
-            <input type="text" id="divingCenter" placeholder="Nome centro">
-          </div>
-          <div class="form-group full-width">
-            <label>Specie Avvistate (separate da virgola)</label>
-            <input type="text" id="species" placeholder="Es. Cernia, Murena, Polpo, Baracuda">
-          </div>
-          <div class="form-group full-width">
-            <label>Note / Diario di Bordo</label>
-            <textarea id="notes" rows="3" placeholder="Descrizione dell'immersione..."></textarea>
+            <label for="seaState">Stato del mare</label>
+            <select id="seaState">
+              <option value="">—</option>
+              <option>Calmo</option>
+              <option>Poco mosso</option>
+              <option>Mosso</option>
+              <option>Molto mosso</option>
+              <option>Agitato</option>
+            </select>
           </div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📍 Mappa & Coordinate</div>
-        <div class="form-grid">
+        <div class="row3">
           <div class="form-group">
-            <label>Latitudine</label>
-            <input type="number" step="any" id="lat">
+            <label for="tempSurface">Temp. superficie (°C)</label>
+            <input type="number" id="tempSurface" step="0.5">
           </div>
           <div class="form-group">
-            <label>Longitudine</label>
-            <input type="number" step="any" id="lng">
+            <label for="tempBottom">Temp. fondo (°C)</label>
+            <input type="number" id="tempBottom" step="0.5">
+          </div>
+          <div class="form-group">
+            <label for="visibility">Visibilità (m)</label>
+            <input type="number" id="visibility" step="0.5">
           </div>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" onclick="getGPS()" style="margin-bottom:8px;">📍 Usa GPS Telefono</button>
-        <div id="formMapContainer"></div>
-        <small style="color:var(--text-light)">Tocca la mappa per impostare o correggere le coordinate.</small>
-      </div>
+      </fieldset>
 
-      <button type="submit" class="btn">💾 Salva Immersione</button>
+      <fieldset>
+        <legend>Fauna e note</legend>
+        <div class="form-group">
+          <label for="species">Specie avvistate (separate da virgola)</label>
+          <input type="text" id="species" placeholder="Es. Murena, Cernia, Barracuda">
+        </div>
+        <div class="form-group">
+          <label for="notes">Note</label>
+          <textarea id="notes" rows="3" placeholder="Visibilità buona, corrente leggera..."></textarea>
+        </div>
+      </fieldset>
+
+      <div class="btn-row">
+        <button type="submit" id="submitBtn">Salva Immersione</button>
+        <button type="button" class="btn-secondary" id="cancelEdit" style="display:none;">Annulla</button>
+      </div>
     </form>
   </div>
+</div>
 
-  <!-- TAB 3: MAPPA GLOBALE -->
-  <div id="tab-map" class="tab-content">
-    <div class="card">
-      <div class="card-title">🗺️ Tutti i Miei Siti di Immersione</div>
-      <div id="mapContainer"></div>
-    </div>
+<!-- VIEW: LOG -->
+<div class="view" id="view-log">
+  <div class="card">
+    <h2>Le Tue Immersioni</h2>
+    <div id="diveList"></div>
   </div>
+</div>
 
-  <!-- TAB 4: STATISTICHE -->
-  <div id="tab-stats" class="tab-content">
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-val" id="stTotalDives">0</div>
-        <div class="stat-lbl">Immersioni</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="stTotalTime">0h</div>
-        <div class="stat-lbl">Tempo di Fondo</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="stMaxDepth">0m</div>
-        <div class="stat-lbl">Profondità Max</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="stAvgSAC">0</div>
-        <div class="stat-lbl">SAC Medio (L/m)</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">📉 Profondità & Tempo nel Tempo</div>
-      <canvas id="depthChart"></canvas>
-    </div>
-
-    <div class="card">
-      <div class="card-title">💨 Consumo Aria (SAC) nel Tempo</div>
-      <canvas id="sacChart"></canvas>
-    </div>
-
-    <div class="card">
-      <div class="card-title">🐟 Specie più Avvistate</div>
-      <canvas id="speciesChart"></canvas>
-    </div>
-
-    <div class="card">
-      <div class="card-title">⚙️ Backup & Dati</div>
-      <button class="btn btn-outline" onclick="exportData()" style="margin-bottom: 8px;">📥 Esporta Backup (JSON)</button>
-      <input type="file" id="importFile" onchange="importData(event)" style="display:none;">
-      <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📤 Importa Backup (JSON)</button>
-    </div>
+<!-- VIEW: MAPPA -->
+<div class="view" id="view-mapview">
+  <div class="card">
+    <h2>Mappa delle Immersioni</h2>
+    <div id="map"></div>
+    <div class="hint">I siti senza coordinate GPS non appaiono sulla mappa.</div>
   </div>
+</div>
 
-  <!-- NAVBAR IN BASSO -->
-  <div class="tab-bar">
-    <div class="tab-item active" onclick="switchTab('list')">
-      <div class="tab-icon">📖</div>
-      <div>Logbook</div>
-    </div>
-    <div class="tab-item" onclick="switchTab('form')">
-      <div class="tab-icon">➕</div>
-      <div>Aggiungi</div>
-    </div>
-    <div class="tab-item" onclick="switchTab('map')">
-      <div class="tab-icon">🗺️</div>
-      <div>Mappa</div>
-    </div>
-    <div class="tab-item" onclick="switchTab('stats')">
-      <div class="tab-icon">📊</div>
-      <div>Stats</div>
-    </div>
+<!-- VIEW: STATISTICHE -->
+<div class="view" id="view-stats">
+  <div class="card">
+    <h2>Statistiche</h2>
+    <div class="stat-grid" id="statTotals"></div>
+    <details open>
+      <summary>Profondità nel tempo</summary>
+      <canvas id="chartDepth" height="180"></canvas>
+    </details>
   </div>
+  <div class="card">
+    <details open>
+      <summary>Consumo aria (SAC) nel tempo</summary>
+      <canvas id="chartSac" height="180"></canvas>
+      <div class="hint">SAC = consumo medio in litri/min ricondotto alla superficie. Calcolato solo per le immersioni con bombola, pressioni e profondità media inserite.</div>
+    </details>
+  </div>
+  <div class="card">
+    <details open>
+      <summary>Immersioni per sito</summary>
+      <canvas id="chartSites" height="200"></canvas>
+    </details>
+  </div>
+  <div class="card">
+    <details open>
+      <summary>Specie avvistate più frequenti</summary>
+      <div id="speciesList"></div>
+    </details>
+  </div>
+</div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- TAB BAR -->
+<div class="tabbar">
+  <button class="tab-btn active" data-tab="view-new"><span class="icon">➕</span>Nuova</button>
+  <button class="tab-btn" data-tab="view-log"><span class="icon">📋</span>Log</button>
+  <button class="tab-btn" data-tab="view-mapview"><span class="icon">🗺️</span>Mappa</button>
+  <button class="tab-btn" data-tab="view-stats"><span class="icon">📊</span>Stats</button>
+</div>
 
-  <script>
-    // Registered SW
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+const STORAGE_KEY = 'sub_dives_v2';
+const OLD_STORAGE_KEY = 'my_dives';
+
+/* ---------- Migrazione dati vecchio formato ---------- */
+function migrateOldData() {
+  const old = localStorage.getItem(OLD_STORAGE_KEY);
+  if (!old) return;
+  try {
+    const oldDives = JSON.parse(old);
+    if (Array.isArray(oldDives) && oldDives.length) {
+      const existing = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      const migrated = oldDives.map((d, i) => ({
+        id: 'legacy-' + Date.now() + '-' + i,
+        location: d.location || '',
+        date: d.date || '',
+        depth: d.depth || '',
+        time: d.time || '',
+        notes: d.notes || ''
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing.concat(migrated)));
     }
+  } catch (e) { /* ignore */ }
+  localStorage.removeItem(OLD_STORAGE_KEY);
+}
+migrateOldData();
 
-    let dives = [];
-    let globalMap = null;
-    let formMap = null;
-    let formMarker = null;
-    let mapMarkers = [];
+function loadDives() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+function saveDives(dives) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(dives));
+}
 
-    // Grafici Chart.js instances
-    let depthChartInst = null;
-    let sacChartInst = null;
-    let speciesChartInst = null;
+/* ---------- Tab navigation ---------- */
+const tabButtons = document.querySelectorAll('.tab-btn');
+const views = document.querySelectorAll('.view');
 
-    // Inizializzazione
-    window.onload = function() {
-      loadData();
-      initFormMap();
-      renderDives();
-      setDefaultFormValues();
-    };
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
 
-    function loadData() {
-      const stored = localStorage.getItem('my_advanced_dives');
-      dives = stored ? JSON.parse(stored) : [];
-    }
+function switchTab(tabId) {
+  tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+  views.forEach(v => v.classList.toggle('active', v.id === tabId));
+  if (tabId === 'view-log') renderLog();
+  if (tabId === 'view-mapview') renderMap();
+  if (tabId === 'view-stats') renderStats();
+}
 
-    function saveData() {
-      localStorage.setItem('my_advanced_dives', JSON.stringify(dives));
-    }
+/* ---------- Form: chips tipo immersione ---------- */
+const diveTypeChips = document.getElementById('diveTypeChips');
+diveTypeChips.addEventListener('click', (e) => {
+  if (e.target.classList.contains('chip')) {
+    e.target.classList.toggle('selected');
+  }
+});
+function getSelectedDiveTypes() {
+  return Array.from(diveTypeChips.querySelectorAll('.chip.selected')).map(c => c.dataset.value);
+}
+function setSelectedDiveTypes(types) {
+  diveTypeChips.querySelectorAll('.chip').forEach(c => {
+    c.classList.toggle('selected', (types || []).includes(c.dataset.value));
+  });
+}
 
-    function setDefaultFormValues() {
-      document.getElementById('diveForm').reset();
-      document.getElementById('editIndex').value = "-1";
-      document.getElementById('diveNum').value = dives.length + 1;
-      
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      document.getElementById('dateTime').value = now.toISOString().slice(0, 16);
-      document.getElementById('sacVal').value = '';
-    }
+/* ---------- MOD hint (nitrox) ---------- */
+const gasType = document.getElementById('gasType');
+const o2Percent = document.getElementById('o2Percent');
+const modHint = document.getElementById('modHint');
+function updateModHint() {
+  const o2 = parseFloat(o2Percent.value);
+  if (gasType.value === 'Nitrox' && o2 > 0) {
+    const mod = ((1.4 / (o2 / 100)) - 1) * 10;
+    modHint.textContent = 'MOD stimata (ppO2 1.4): ' + mod.toFixed(1) + ' m';
+  } else {
+    modHint.textContent = '';
+  }
+}
+gasType.addEventListener('change', updateModHint);
+o2Percent.addEventListener('input', updateModHint);
+gasType.addEventListener('change', () => {
+  if (gasType.value === 'Aria') o2Percent.value = 21;
+});
 
-    // Switch tra schede
-    function switchTab(tabName) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+/* ---------- SAC hint ---------- */
+['tankSize','pStart','pEnd','time','avgDepth'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateSacHint);
+});
+const sacHint = document.getElementById('sacHint');
+function computeSac(tankSize, pStart, pEnd, timeMin, avgDepth) {
+  if (!tankSize || !pStart || !pEnd || !timeMin || pStart <= pEnd) return null;
+  const ata = (avgDepth || 0) / 10 + 1;
+  const consumedLiters = (pStart - pEnd) * tankSize;
+  return consumedLiters / timeMin / ata;
+}
+function updateSacHint() {
+  const sac = computeSac(
+    parseFloat(document.getElementById('tankSize').value),
+    parseFloat(document.getElementById('pStart').value),
+    parseFloat(document.getElementById('pEnd').value),
+    parseFloat(document.getElementById('time').value),
+    parseFloat(document.getElementById('avgDepth').value)
+  );
+  sacHint.textContent = sac ? 'SAC stimato: ' + sac.toFixed(1) + ' L/min' : '';
+}
 
-      document.getElementById('tab-' + tabName).classList.add('active');
-      
-      const tabs = ['list', 'form', 'map', 'stats'];
-      const idx = tabs.indexOf(tabName);
-      if(idx !== -1) document.querySelectorAll('.tab-item')[idx].classList.add('active');
+/* ---------- Data odierna default ---------- */
+document.getElementById('date').valueAsDate = new Date();
 
-      if (tabName === 'map') {
-        setTimeout(initGlobalMap, 200);
-      } else if (tabName === 'stats') {
-        renderStats();
-      }
-    }
-
-    // Calcolo SAC (Surface Air Consumption)
-    function calcSAC() {
-      const maxD = parseFloat(document.getElementById('maxDepth').value) || 0;
-      const avgD = parseFloat(document.getElementById('avgDepth').value) || (maxD > 0 ? maxD / 1.5 : 0);
-      const time = parseFloat(document.getElementById('diveTime').value) || 0;
-      const vol = parseFloat(document.getElementById('tankVol').value) || 0;
-      const pStart = parseFloat(document.getElementById('pressStart').value) || 0;
-      const pEnd = parseFloat(document.getElementById('pressEnd').value) || 0;
-
-      if (time > 0 && vol > 0 && pStart > pEnd && avgD >= 0) {
-        const ata = 1 + (avgD / 10);
-        const barUsed = pStart - pEnd;
-        const totalLiters = barUsed * vol;
-        const sac = totalLiters / (time * ata);
-        document.getElementById('sacVal').value = sac.toFixed(1) + " L/min";
-        return sac.toFixed(1);
-      } else {
-        document.getElementById('sacVal').value = '';
-        return null;
-      }
-    }
-
-    function toggleNitrox() {
-      const type = document.getElementById('gasType').value;
-      document.getElementById('o2Group').style.display = type.includes('Nitrox Personalizzato') ? 'block' : 'none';
-    }
-
-    // GPS & Mappa nel Form
-    function initFormMap() {
-      formMap = L.map('formMapContainer').setView([42.5, 11.0], 6);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(formMap);
-
-      formMap.on('click', function(e) {
-        setFormCoordinates(e.latlng.lat, e.latlng.lng);
-      });
-    }
-
-    function setFormCoordinates(lat, lng) {
-      document.getElementById('lat').value = lat.toFixed(6);
-      document.getElementById('lng').value = lng.toFixed(6);
-
-      if (formMarker) formMap.removeLayer(formMarker);
-      formMarker = L.marker([lat, lng]).addTo(formMap);
-      formMap.panTo([lat, lng]);
-    }
-
-    function getGPS() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-          setFormCoordinates(pos.coords.latitude, pos.coords.longitude);
-        }, () => alert("Impossibile ottenere la posizione GPS."));
-      }
-    }
-
-    // Gestione Form Submit
-    document.getElementById('diveForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      const editIdx = parseInt(document.getElementById('editIndex').value);
-      const diveData = {
-        num: parseInt(document.getElementById('diveNum').value),
-        dateTime: document.getElementById('dateTime').value,
-        location: document.getElementById('location').value,
-        site: document.getElementById('site').value,
-        maxDepth: parseFloat(document.getElementById('maxDepth').value),
-        avgDepth: parseFloat(document.getElementById('avgDepth').value) || null,
-        diveTime: parseInt(document.getElementById('diveTime').value),
-        safetyStop: document.getElementById('safetyStop').value,
-        gasType: document.getElementById('gasType').value,
-        o2Perc: document.getElementById('o2Perc').value,
-        tankVol: parseFloat(document.getElementById('tankVol').value),
-        pressStart: parseFloat(document.getElementById('pressStart').value),
-        pressEnd: parseFloat(document.getElementById('pressEnd').value),
-        sac: calcSAC(),
-        wetsuit: document.getElementById('wetsuit').value,
-        weights: document.getElementById('weights').value,
-        gear: document.getElementById('gear').value,
-        weather: document.getElementById('weather').value,
-        visib: document.getElementById('visib').value,
-        tempSurf: document.getElementById('tempSurf').value,
-        tempBottom: document.getElementById('tempBottom').value,
-        diveType: document.getElementById('diveType').value,
-        buddy: document.getElementById('buddy').value,
-        divingCenter: document.getElementById('divingCenter').value,
-        species: document.getElementById('species').value,
-        notes: document.getElementById('notes').value,
-        lat: parseFloat(document.getElementById('lat').value) || null,
-        lng: parseFloat(document.getElementById('lng').value) || null
-      };
-
-      if (editIdx >= 0) {
-        dives[editIdx] = diveData;
-      } else {
-        dives.unshift(diveData);
-      }
-
-      saveData();
-      renderDives();
-      setDefaultFormValues();
-      switchTab('list');
-    });
-
-    // Render Lista Immersioni
-    function renderDives() {
-      const container = document.getElementById('divesContainer');
-      const search = document.getElementById('searchInput').value.toLowerCase();
-
-      const filtered = dives.filter(d => 
-        (d.site && d.site.toLowerCase().includes(search)) ||
-        (d.location && d.location.toLowerCase().includes(search)) ||
-        (d.species && d.species.toLowerCase().includes(search)) ||
-        (d.buddy && d.buddy.toLowerCase().includes(search))
-      );
-
-      if (filtered.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:var(--text-light); margin-top:30px;">Nessuna immersione trovata.</p>';
-        return;
-      }
-
-      container.innerHTML = filtered.map((d, idx) => {
-        const actualIdx = dives.indexOf(d);
-        const dateFormatted = new Date(d.dateTime).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' });
-        
-        return `
-          <div class="dive-card">
-            <div class="dive-header">
-              <span>#${d.num} - ${d.site}</span>
-              <span style="color:var(--primary);">${d.maxDepth}m</span>
-            </div>
-            <div style="font-size:0.85rem; font-weight:600; color:var(--text-light);">${d.location} | 📅 ${dateFormatted}</div>
-            
-            <div class="dive-badges">
-              <span class="badge">⏱️ ${d.diveTime} min</span>
-              <span class="badge">💨 ${d.gasType}</span>
-              ${d.sac ? `<span class="badge badge-accent">🔥 SAC: ${d.sac} L/m</span>` : ''}
-              ${d.tempBottom ? `<span class="badge">🌡️ ${d.tempBottom}°C</span>` : ''}
-              ${d.diveType ? `<span class="badge">${d.diveType}</span>` : ''}
-            </div>
-
-            ${d.species ? `<div class="dive-details">🐟 <b>Specie:</b> ${d.species}</div>` : ''}
-            ${d.buddy ? `<div class="dive-details">🤝 <b>Buddy:</b> ${d.buddy} ${d.divingCenter ? `(${d.divingCenter})` : ''}</div>` : ''}
-            ${d.notes ? `<div class="dive-details" style="font-style:italic; margin-top:4px;">"${d.notes}"</div>` : ''}
-
-            <div style="margin-top:10px; display:flex; gap:8px;">
-              <button class="btn btn-outline btn-sm" onclick="editDive(${actualIdx})">✏️ Modifica</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteDive(${actualIdx})">🗑️ Elimina</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function editDive(idx) {
-      const d = dives[idx];
-      document.getElementById('editIndex').value = idx;
-      document.getElementById('diveNum').value = d.num;
-      document.getElementById('dateTime').value = d.dateTime;
-      document.getElementById('location').value = d.location;
-      document.getElementById('site').value = d.site;
-      document.getElementById('maxDepth').value = d.maxDepth;
-      document.getElementById('avgDepth').value = d.avgDepth || '';
-      document.getElementById('diveTime').value = d.diveTime;
-      document.getElementById('safetyStop').value = d.safetyStop || '';
-      document.getElementById('gasType').value = d.gasType;
-      document.getElementById('o2Perc').value = d.o2Perc || 32;
-      document.getElementById('tankVol').value = d.tankVol || 12;
-      document.getElementById('pressStart').value = d.pressStart || 200;
-      document.getElementById('pressEnd').value = d.pressEnd || 50;
-      document.getElementById('wetsuit').value = d.wetsuit || '';
-      document.getElementById('weights').value = d.weights || '';
-      document.getElementById('gear').value = d.gear || '';
-      document.getElementById('weather').value = d.weather || '';
-      document.getElementById('visib').value = d.visib || '';
-      document.getElementById('tempSurf').value = d.tempSurf || '';
-      document.getElementById('tempBottom').value = d.tempBottom || '';
-      document.getElementById('diveType').value = d.diveType || '';
-      document.getElementById('buddy').value = d.buddy || '';
-      document.getElementById('divingCenter').value = d.divingCenter || '';
-      document.getElementById('species').value = d.species || '';
-      document.getElementById('notes').value = d.notes || '';
-      
-      if (d.lat && d.lng) {
-        setFormCoordinates(d.lat, d.lng);
-      }
-      calcSAC();
-      switchTab('form');
-    }
-
-    function deleteDive(idx) {
-      if (confirm('Sei sicuro di voler eliminare questa immersione?')) {
-        dives.splice(idx, 1);
-        saveData();
-        renderDives();
-      }
-    }
-
-    // Mappa Globale
-    function initGlobalMap() {
-      if (!globalMap) {
-        globalMap = L.map('mapContainer').setView([42.5, 12.5], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(globalMap);
-      }
-
-      globalMap.invalidateSize();
-
-      // Rimuovi vecchi marker
-      mapMarkers.forEach(m => globalMap.removeLayer(m));
-      mapMarkers = [];
-
-      const validCoordsDives = dives.filter(d => d.lat && d.lng);
-
-      if (validCoordsDives.length > 0) {
-        const bounds = [];
-        validCoordsDives.forEach(d => {
-          const m = L.marker([d.lat, d.lng]).addTo(globalMap)
-            .bindPopup(`<b>#${d.num} ${d.site}</b><br>${d.location}<br>Prof: ${d.maxDepth}m | ${d.diveTime} min`);
-          mapMarkers.push(m);
-          bounds.push([d.lat, d.lng]);
+/* ---------- Mappa selezione punto nel form ---------- */
+let pickerMap = null;
+let pickerMarker = null;
+const pickerMapDiv = document.getElementById('pickerMap');
+document.getElementById('toggleMapPicker').addEventListener('click', () => {
+  const show = pickerMapDiv.style.display !== 'block';
+  pickerMapDiv.style.display = show ? 'block' : 'none';
+  if (show) {
+    setTimeout(() => {
+      if (!pickerMap) {
+        const startLat = parseFloat(document.getElementById('lat').value) || 41.9;
+        const startLng = parseFloat(document.getElementById('lng').value) || 12.5;
+        pickerMap = L.map('pickerMap').setView([startLat, startLng], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(pickerMap);
+        pickerMap.on('click', (e) => {
+          document.getElementById('lat').value = e.latlng.lat.toFixed(6);
+          document.getElementById('lng').value = e.latlng.lng.toFixed(6);
+          if (pickerMarker) pickerMap.removeLayer(pickerMarker);
+          pickerMarker = L.marker(e.latlng).addTo(pickerMap);
         });
-        globalMap.fitBounds(bounds, { padding: [30, 30] });
       }
-    }
+      pickerMap.invalidateSize();
+    }, 50);
+  }
+});
+document.getElementById('useGPS').addEventListener('click', () => {
+  if (!navigator.geolocation) { alert('Geolocalizzazione non disponibile.'); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+    document.getElementById('lng').value = pos.coords.longitude.toFixed(6);
+  }, () => alert('Impossibile ottenere la posizione.'));
+});
 
-    // Statistiche & Grafici
-    function renderStats() {
-      document.getElementById('stTotalDives').innerText = dives.length;
-      
-      const totalMinutes = dives.reduce((acc, d) => acc + (parseInt(d.diveTime) || 0), 0);
-      const hours = Math.floor(totalMinutes / 60);
-      const mins = totalMinutes % 60;
-      document.getElementById('stTotalTime').innerText = `${hours}h ${mins}m`;
+/* ---------- Salvataggio / modifica immersione ---------- */
+const diveForm = document.getElementById('diveForm');
+const cancelEditBtn = document.getElementById('cancelEdit');
+const formTitle = document.getElementById('formTitle');
+const submitBtn = document.getElementById('submitBtn');
 
-      const maxD = dives.reduce((max, d) => (d.maxDepth > max ? d.maxDepth : max), 0);
-      document.getElementById('stMaxDepth').innerText = `${maxD}m`;
+function resetForm() {
+  diveForm.reset();
+  document.getElementById('date').valueAsDate = new Date();
+  document.getElementById('diveId').value = '';
+  setSelectedDiveTypes([]);
+  o2Percent.value = 21;
+  modHint.textContent = '';
+  sacHint.textContent = '';
+  formTitle.textContent = 'Nuova Immersione';
+  submitBtn.textContent = 'Salva Immersione';
+  cancelEditBtn.style.display = 'none';
+}
 
-      const sacList = dives.map(d => parseFloat(d.sac)).filter(s => !isNaN(s) && s > 0);
-      const avgSAC = sacList.length > 0 ? (sacList.reduce((a, b) => a + b, 0) / sacList.length).toFixed(1) : 0;
-      document.getElementById('stAvgSAC').innerText = avgSAC;
+cancelEditBtn.addEventListener('click', resetForm);
 
-      // Inverti array per mostrare la cronologia corretta
-      const chronDives = [...dives].reverse();
+diveForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const id = document.getElementById('diveId').value || (Date.now().toString());
 
-      // Grafico 1: Profondità & Tempo
-      const labels = chronDives.map(d => `#${d.num}`);
-      const depthData = chronDives.map(d => d.maxDepth);
-      const timeData = chronDives.map(d => d.diveTime);
+  const dive = {
+    id,
+    location: document.getElementById('location').value,
+    date: document.getElementById('date').value,
+    entryTime: document.getElementById('entryTime').value,
+    diveTypes: getSelectedDiveTypes(),
+    lat: document.getElementById('lat').value ? parseFloat(document.getElementById('lat').value) : null,
+    lng: document.getElementById('lng').value ? parseFloat(document.getElementById('lng').value) : null,
+    depth: document.getElementById('depth').value,
+    avgDepth: document.getElementById('avgDepth').value,
+    time: document.getElementById('time').value,
+    gasType: document.getElementById('gasType').value,
+    o2Percent: document.getElementById('o2Percent').value,
+    tankSize: document.getElementById('tankSize').value,
+    pStart: document.getElementById('pStart').value,
+    pEnd: document.getElementById('pEnd').value,
+    suit: document.getElementById('suit').value,
+    weights: document.getElementById('weights').value,
+    gear: document.getElementById('gear').value,
+    buddy: document.getElementById('buddy').value,
+    center: document.getElementById('center').value,
+    weather: document.getElementById('weather').value,
+    seaState: document.getElementById('seaState').value,
+    tempSurface: document.getElementById('tempSurface').value,
+    tempBottom: document.getElementById('tempBottom').value,
+    visibility: document.getElementById('visibility').value,
+    species: document.getElementById('species').value,
+    notes: document.getElementById('notes').value
+  };
 
-      if (depthChartInst) depthChartInst.destroy();
-      depthChartInst = new Chart(document.getElementById('depthChart'), {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Prof. Max (m)', data: depthData, backgroundColor: '#0077b6' },
-            { label: 'Tempo (min)', data: timeData, backgroundColor: '#00b4d8' }
-          ]
-        },
-        options: { responsive: true, scales: { y: { beginAtZero: true } } }
-      });
+  let dives = loadDives();
+  const existingIndex = dives.findIndex(d => d.id === id);
+  if (existingIndex >= 0) {
+    dives[existingIndex] = dive;
+  } else {
+    dives.unshift(dive);
+  }
+  saveDives(dives);
+  resetForm();
+  switchTab('view-log');
+});
 
-      // Grafico 2: SAC
-      const sacData = chronDives.map(d => parseFloat(d.sac) || null);
-      if (sacChartInst) sacChartInst.destroy();
-      sacChartInst = new Chart(document.getElementById('sacChart'), {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{ label: 'SAC (L/min)', data: sacData, borderColor: '#2a9d8f', fill: false, tension: 0.2 }]
-        },
-        options: { responsive: true, scales: { y: { beginAtZero: false } } }
-      });
+/* ---------- Log: render, modifica, elimina ---------- */
+const diveList = document.getElementById('diveList');
 
-      // Grafico 3: Specie più Frequenti
-      const speciesCounts = {};
-      dives.forEach(d => {
-        if (d.species) {
-          d.species.split(',').forEach(s => {
-            const clean = s.trim().toLowerCase();
-            if (clean) speciesCounts[clean] = (speciesCounts[clean] || 0) + 1;
-          });
-        }
-      });
+function renderLog() {
+  const dives = loadDives();
+  if (dives.length === 0) {
+    diveList.innerHTML = '<p class="empty-msg">Nessuna immersione salvata.</p>';
+    return;
+  }
+  diveList.innerHTML = dives.map((d, index) => {
+    const details = [];
+    if (d.avgDepth) details.push('📏 media ' + d.avgDepth + 'm');
+    if (d.entryTime) details.push('🕒 ' + d.entryTime);
+    if (d.gasType) details.push('💨 ' + d.gasType + (d.gasType === 'Nitrox' ? ' ' + d.o2Percent + '%' : ''));
+    if (d.buddy) details.push('🤝 ' + d.buddy);
+    if (d.center) details.push('🏝️ ' + d.center);
+    if (d.visibility) details.push('👁️ vis. ' + d.visibility + 'm');
+    if (d.tempBottom) details.push('🌡️ ' + d.tempBottom + '°C');
+    const sac = computeSac(parseFloat(d.tankSize), parseFloat(d.pStart), parseFloat(d.pEnd), parseFloat(d.time), parseFloat(d.avgDepth));
+    if (sac) details.push('🫧 SAC ' + sac.toFixed(1) + 'L/min');
 
-      const sortedSpecies = Object.keys(speciesCounts).sort((a,b) => speciesCounts[b] - speciesCounts[a]).slice(0, 5);
-      const speciesData = sortedSpecies.map(s => speciesCounts[s]);
+    const typeTags = (d.diveTypes || []).map(t => '<span class="tag">' + t + '</span>').join('');
+    const speciesTags = (d.species || '').split(',').map(s => s.trim()).filter(Boolean).map(s => '<span class="tag">🐟 ' + s + '</span>').join('');
 
-      if (speciesChartInst) speciesChartInst.destroy();
-      speciesChartInst = new Chart(document.getElementById('speciesChart'), {
-        type: 'doughnut',
-        data: {
-          labels: sortedSpecies.map(s => s.charAt(0).toUpperCase() + s.slice(1)),
-          datasets: [{ data: speciesData, backgroundColor: ['#0077b6', '#00b4d8', '#2a9d8f', '#e76f51', '#f4a261'] }]
-        },
-        options: { responsive: true }
-      });
-    }
+    return `
+      <div class="dive-item">
+        <div class="dive-title">
+          <span>#${dives.length - index} ${d.location || ''}</span>
+          <span class="num">${d.date || ''}</span>
+        </div>
+        <div class="dive-details">
+          📅 ${d.date || '—'} | 📐 ${d.depth || '?'}m max | ⏱️ ${d.time || '?'} min
+        </div>
+        ${details.length ? '<div class="dive-details">' + details.join(' &nbsp;·&nbsp; ') + '</div>' : ''}
+        ${typeTags ? '<div>' + typeTags + '</div>' : ''}
+        ${speciesTags ? '<div>' + speciesTags + '</div>' : ''}
+        ${d.notes ? '<div class="dive-details">📝 ' + d.notes + '</div>' : ''}
+        <div class="dive-actions">
+          <button type="button" class="btn-secondary" onclick="editDive('${d.id}')">✏️ Modifica</button>
+          <button type="button" class="btn-danger" onclick="deleteDive('${d.id}')">🗑️ Elimina</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
 
-    // Export & Import Backup JSON
-    function exportData() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dives, null, 2));
-      const dlAnchor = document.createElement('a');
-      dlAnchor.setAttribute("href", dataStr);
-      dlAnchor.setAttribute("download", `logbook_backup_${new Date().toISOString().slice(0,10)}.json`);
-      document.body.appendChild(dlAnchor);
-      dlAnchor.click();
-      dlAnchor.remove();
-    }
+function editDive(id) {
+  const dives = loadDives();
+  const d = dives.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('diveId').value = d.id;
+  document.getElementById('location').value = d.location || '';
+  document.getElementById('date').value = d.date || '';
+  document.getElementById('entryTime').value = d.entryTime || '';
+  setSelectedDiveTypes(d.diveTypes || []);
+  document.getElementById('lat').value = d.lat ?? '';
+  document.getElementById('lng').value = d.lng ?? '';
+  document.getElementById('depth').value = d.depth || '';
+  document.getElementById('avgDepth').value = d.avgDepth || '';
+  document.getElementById('time').value = d.time || '';
+  document.getElementById('gasType').value = d.gasType || 'Aria';
+  document.getElementById('o2Percent').value = d.o2Percent || 21;
+  document.getElementById('tankSize').value = d.tankSize || '';
+  document.getElementById('pStart').value = d.pStart || '';
+  document.getElementById('pEnd').value = d.pEnd || '';
+  document.getElementById('suit').value = d.suit || '';
+  document.getElementById('weights').value = d.weights || '';
+  document.getElementById('gear').value = d.gear || '';
+  document.getElementById('buddy').value = d.buddy || '';
+  document.getElementById('center').value = d.center || '';
+  document.getElementById('weather').value = d.weather || '';
+  document.getElementById('seaState').value = d.seaState || '';
+  document.getElementById('tempSurface').value = d.tempSurface || '';
+  document.getElementById('tempBottom').value = d.tempBottom || '';
+  document.getElementById('visibility').value = d.visibility || '';
+  document.getElementById('species').value = d.species || '';
+  document.getElementById('notes').value = d.notes || '';
+  updateModHint();
+  updateSacHint();
 
-    function importData(event) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (Array.isArray(imported)) {
-            dives = imported;
-            saveData();
-            renderDives();
-            alert('Backup importato con successo!');
-          }
-        } catch(err) {
-          alert('Errore nel formato del file di backup.');
-        }
-      };
-      reader.readAsText(event.target.files[0]);
-    }
-  </script>
+  formTitle.textContent = 'Modifica Immersione';
+  submitBtn.textContent = 'Aggiorna Immersione';
+  cancelEditBtn.style.display = 'block';
+  switchTab('view-new');
+}
+
+function deleteDive(id) {
+  if (!confirm('Eliminare questa immersione?')) return;
+  const dives = loadDives().filter(d => d.id !== id);
+  saveDives(dives);
+  renderLog();
+}
+
+/* ---------- Mappa immersioni ---------- */
+let diveMap = null;
+let diveMarkersLayer = null;
+
+function renderMap() {
+  const dives = loadDives().filter(d => d.lat && d.lng);
+  if (!diveMap) {
+    diveMap = L.map('map').setView([41.9, 12.5], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(diveMap);
+    diveMarkersLayer = L.layerGroup().addTo(diveMap);
+  }
+  diveMarkersLayer.clearLayers();
+  const bounds = [];
+  dives.forEach(d => {
+    const marker = L.marker([d.lat, d.lng]).addTo(diveMarkersLayer);
+    marker.bindPopup(
+      '<b>' + (d.location || 'Sito') + '</b><br>' +
+      (d.date || '') + '<br>' +
+      '📐 ' + (d.depth || '?') + 'm · ⏱️ ' + (d.time || '?') + ' min'
+    );
+    bounds.push([d.lat, d.lng]);
+  });
+  setTimeout(() => {
+    diveMap.invalidateSize();
+    if (bounds.length) diveMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+  }, 50);
+}
+
+/* ---------- Statistiche ---------- */
+let chartDepthInstance = null;
+let chartSacInstance = null;
+let chartSitesInstance = null;
+
+function renderStats() {
+  const dives = loadDives().slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const statTotals = document.getElementById('statTotals');
+
+  const count = dives.length;
+  const totalMinutes = dives.reduce((s, d) => s + (parseFloat(d.time) || 0), 0);
+  const maxDepthEver = dives.reduce((m, d) => Math.max(m, parseFloat(d.depth) || 0), 0);
+  const avgDepthAll = dives.length ? (dives.reduce((s, d) => s + (parseFloat(d.depth) || 0), 0) / dives.length) : 0;
+
+  statTotals.innerHTML = `
+    <div class="stat-box"><div class="val">${count}</div><div class="lbl">Immersioni</div></div>
+    <div class="stat-box"><div class="val">${(totalMinutes/60).toFixed(1)}</div><div class="lbl">Ore totali</div></div>
+    <div class="stat-box"><div class="val">${maxDepthEver.toFixed(1)}m</div><div class="lbl">Profondità max</div></div>
+    <div class="stat-box"><div class="val">${avgDepthAll.toFixed(1)}m</div><div class="lbl">Profondità media</div></div>
+  `;
+
+  const labels = dives.map(d => d.date);
+  const maxDepths = dives.map(d => parseFloat(d.depth) || null);
+  const avgDepths = dives.map(d => d.avgDepth ? parseFloat(d.avgDepth) : null);
+
+  if (chartDepthInstance) chartDepthInstance.destroy();
+  chartDepthInstance = new Chart(document.getElementById('chartDepth'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Prof. max (m)', data: maxDepths, borderColor: '#0077b6', backgroundColor: 'rgba(0,119,182,0.1)', tension: 0.25 },
+        { label: 'Prof. media (m)', data: avgDepths, borderColor: '#94c9e8', backgroundColor: 'rgba(148,201,232,0.1)', tension: 0.25 }
+      ]
+    },
+    options: { responsive: true }
+  });
+
+  const sacLabels = [];
+  const sacValues = [];
+  dives.forEach(d => {
+    const sac = computeSac(parseFloat(d.tankSize), parseFloat(d.pStart), parseFloat(d.pEnd), parseFloat(d.time), parseFloat(d.avgDepth));
+    if (sac) { sacLabels.push(d.date); sacValues.push(sac); }
+  });
+  if (chartSacInstance) chartSacInstance.destroy();
+  chartSacInstance = new Chart(document.getElementById('chartSac'), {
+    type: 'line',
+    data: { labels: sacLabels, datasets: [{ label: 'SAC (L/min)', data: sacValues, borderColor: '#2a9d8f', backgroundColor: 'rgba(42,157,143,0.1)', tension: 0.25 }] },
+    options: { responsive: true }
+  });
+
+  const siteCounts = {};
+  dives.forEach(d => {
+    const loc = d.location || 'Sconosciuto';
+    siteCounts[loc] = (siteCounts[loc] || 0) + 1;
+  });
+  const siteSorted = Object.entries(siteCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (chartSitesInstance) chartSitesInstance.destroy();
+  chartSitesInstance = new Chart(document.getElementById('chartSites'), {
+    type: 'bar',
+    data: { labels: siteSorted.map(s => s[0]), datasets: [{ label: 'N. immersioni', data: siteSorted.map(s => s[1]), backgroundColor: '#0077b6' }] },
+    options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } } }
+  });
+
+  const speciesCounts = {};
+  dives.forEach(d => {
+    (d.species || '').split(',').map(s => s.trim()).filter(Boolean).forEach(s => {
+      speciesCounts[s] = (speciesCounts[s] || 0) + 1;
+    });
+  });
+  const speciesSorted = Object.entries(speciesCounts).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const speciesListDiv = document.getElementById('speciesList');
+  if (speciesSorted.length === 0) {
+    speciesListDiv.innerHTML = '<p class="empty-msg">Nessun avvistamento registrato.</p>';
+  } else {
+    const maxCount = speciesSorted[0][1];
+    speciesListDiv.innerHTML = speciesSorted.map(([name, c]) => `
+      <div class="species-row-wrap">
+        <div class="species-row"><span>🐟 ${name}</span><span>${c}</span></div>
+        <div class="species-bar-bg"><div class="species-bar-fill" style="width:${(c/maxCount*100).toFixed(0)}%"></div></div>
+      </div>
+    `).join('');
+  }
+}
+
+/* ---------- Init ---------- */
+renderLog();
+</script>
 </body>
 </html>
